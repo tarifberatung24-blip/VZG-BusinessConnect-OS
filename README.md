@@ -1,6 +1,6 @@
-# BusinessConnect OS — B2B Platform for German–Bulgarian Trade
+# VZG BusinessConnect-OS — B2B Platform for German–Bulgarian Trade
 
-Production-grade pipeline: **Lovable (UI) → GitHub (code + CI) → Supabase Frankfurt (backend)**,
+Brand: **VZG BusinessConnect-OS**. Production-grade pipeline: **Lovable (UI) → GitHub (code + CI) → Supabase Frankfurt (backend)**,
 with Hermes Agent operating directly on the GitHub repo for schema, integrations and QA.
 
 ```
