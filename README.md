@@ -67,6 +67,11 @@ Migrations `001`–`004` are applied; demo users and seed companies/reviews are 
 4. **Frontend env** — copy `.env.example` → `.env`, fill `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`
    (Project Settings → API). For the live project these are already in `supabase/.env`.
 
+> **Migrations are not idempotent** (`create table` / `create type` without `if not exists`).
+> Run `001` → `004` exactly once, against a fresh project or a Supabase preview-branch database.
+> Never re-run them against the live project — the GitHub ↔ Supabase integration applies them
+> to per-PR preview databases, which is the correct place for them.
+
 ## Auth trigger (required)
 
 ```sql
