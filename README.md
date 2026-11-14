@@ -26,30 +26,46 @@ BusinessConnect-OS/
 ├── index.html                 # local MVP prototype (localStorage) — interaction spec
 ├── assets/                    # prototype css/js
 ├── supabase/
+│   ├── config.toml            # supabase CLI config (project_id = vzg-businessconnect-os)
+│   ├── .env                   # live connection secrets (gitignored)
 │   ├── migrations/
 │   │   ├── 001_init.sql       # full schema (profiles, companies, inquiries, threads…)
-│   │   └── 002_rls.sql        # Row Level Security + storage buckets + realtime
+│   │   ├── 002_rls.sql        # Row Level Security + storage buckets + realtime
+│   │   ├── 003_auth_trigger.sql  # handle_new_user trigger
+│   │   └── 004_signup_role_fix.sql  # signup role whitelist: admin never self-assigned
 │   └── seed.sql               # demo companies & reviews (idempotent-friendly)
 ├── .env.example               # required frontend env vars
 └── LOVABLE-PROMPTS.md         # master prompt + step-by-step prompts for Lovable
 ```
 
-## Backend quickstart (one-time)
+## Live backend (provisioned 2026-11-14)
+
+| Field | Value |
+|-------|-------|
+| Project | `vzg-businessconnect-os` |
+| Ref | `kdtufrnatwifjvqwwcpc` |
+| URL | https://kdtufrnatwifjvqwwcpc.supabase.co |
+| Region | **`eu-central-1` — Frankfurt am Main (DE)** |
+| Org | VZG CONSULT |
+| Secrets | `supabase/.env` (gitignored — never commit) |
+
+Migrations `001`–`004` are applied; demo users and seed companies/reviews are loaded.
+
+> **Region note.** Supabase cannot move a project after creation. The generic **"Europe"**
+> option can land in London or Zurich (outside the EU) — and a mis-click lands in the US.
+> Always pick the exact region **`eu-central-1 (Frankfurt)`**. If a project already exists in
+> the wrong region, the fix is a new project plus a re-run of `001` → `004` and `seed.sql`.
+
+## Backend quickstart (rebuild from scratch)
 
 1. **Create Supabase project** — https://supabase.com/dashboard → New project
-   - Region: **Central EU (Frankfurt) `eu-central-1`** (pick exact region — the general "Europe" option can land in London/Zurich, outside the EU)
+   - Region: **`eu-central-1` (Frankfurt)** — exact region, not "Europe".
    - Save the DB password.
-2. **Run migrations** — Dashboard → SQL Editor → paste `supabase/migrations/001_init.sql` → Run. Then `002_rls.sql` → Run.
-3. **Create demo auth users** — Dashboard → Authentication → Users → Add user:
-   - `admin@businessconnect.eu` / `admin123` (set role later)
-   - `ivan@sofiatextile.bg` / `demo1234`
-   - `georgi@balkanmetal.bg` / `demo1234`
-   - `klaus@heidelberg-maschinen.de` / `demo1234`
-   - `anna@alpine-food.de` / `demo1234`
-4. **Provision profiles** — the app creates a profile row automatically on first login (`handle_new_user` trigger) — see `supabase/migrations/003_auth_trigger.sql`.
-5. **Seed companies** — paste `supabase/seed.sql` → Run.
-6. **Set admin role** — `update profiles set role='admin' where email='admin@businessconnect.eu';`
-7. **Frontend env** — copy `.env.example` → `.env`, fill `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (Project Settings → API).
+2. **Run migrations in order** — Dashboard → SQL Editor:
+   `001_init.sql` → `002_rls.sql` → `003_auth_trigger.sql` → `004_signup_role_fix.sql`.
+3. **Seed** — paste `supabase/seed.sql` → Run (demo companies + reviews).
+4. **Frontend env** — copy `.env.example` → `.env`, fill `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`
+   (Project Settings → API). For the live project these are already in `supabase/.env`.
 
 ## Auth trigger (required)
 
@@ -74,6 +90,19 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 ```
+
+### Signup cannot grant admin (`004_signup_role_fix.sql`)
+
+`004` narrows what a signup may request: **`supplier` and `buyer` are honoured, `admin` is not.**
+A user who signs up with `role = "admin"` in their metadata still gets `buyer`. Admin is granted
+only by an operator holding the service role:
+
+```sql
+update public.profiles set role = 'admin' where email = 'admin@businessconnect.eu';
+```
+
+Verified on the live project: the `admin@businessconnect.eu` signup (metadata `role = admin`)
+produced `role = buyer`.
 
 ## Branch model (avoid Lovable ↔ manual edit conflicts)
 
@@ -103,7 +132,9 @@ Rule of thumb: **never edit the same file on two branches without rebasing.** If
 - [x] Schema + RLS + storage + realtime
 - [x] Seed data (5 demo accounts, flagship companies, reviews)
 - [x] Auth trigger
-- [ ] Demo auth users provisioned (manual step in dashboard)
+- [x] Signup role-escalation fix (`004`) — verified live
+- [x] Live EU project provisioned (`eu-central-1`), migrations applied
+- [x] Demo auth users provisioned
 - [ ] Lovable connected to repo
 - [ ] Vercel deployment wired
 - [ ] Real-time chat verified end-to-end
